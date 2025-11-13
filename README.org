@@ -1,0 +1,171 @@
+#+TITLE: Tmux Configuration
+#+AUTHOR: Tony, btw
+
+* Installation
+
+This is my tmux config. It's a zero-plugin setup with vim-like keybindings and a Tokyo Night Moon theme.
+
+To use this config, first make sure tmux is installed:
+
+#+begin_src sh
+# Arch
+sudo pacman -S tmux
+
+# Ubuntu/Debian
+sudo apt install tmux
+
+# macOS
+brew install tmux
+#+end_src
+
+Then point tmux to this config by symlinking it:
+
+#+begin_src sh
+mkdir -p ~/.config/tmux
+ln -sf /path/to/this/tmux.conf ~/.config/tmux/tmux.conf
+#+end_src
+
+Or if you just want to test it out without symlinking:
+
+#+begin_src sh
+tmux source-file /path/to/this/tmux.conf
+#+end_src
+
+* Configuration Breakdown
+
+** Terminal and Display Settings
+
+#+begin_src conf
+set -g default-terminal "tmux-256color"
+set -ga terminal-overrides ",*:RGB"
+#+end_src
+
+These lines enable 256-color support and true color (RGB) support. The first line tells tmux to advertise itself as a 256-color terminal, and the second enables 24-bit RGB colors. This is essential for proper color rendering in tools like Neovim.
+
+#+begin_src conf
+set -g mouse on
+set -g set-clipboard on
+#+end_src
+
+Mouse support lets you click between panes and drag borders to resize. Clipboard integration means when you copy text in tmux, it goes to your system clipboard.
+
+** Prefix Key
+
+#+begin_src conf
+unbind C-b
+set -g prefix C-a
+bind-key C-a send-prefix
+#+end_src
+
+This changes the prefix from =Ctrl-b= to =Ctrl-a= because it's way easier to reach. The third line lets you send the actual =Ctrl-a= to the terminal if needed.
+
+** Pane Navigation
+
+#+begin_src conf
+bind h select-pane -L
+bind j select-pane -D
+bind k select-pane -U
+bind l select-pane -R
+#+end_src
+
+Vim-style pane navigation. After hitting the prefix, you can use =h/j/k/l= to move between panes.
+
+#+begin_src conf
+bind -n M-h select-pane -L
+bind -n M-j select-pane -D
+bind -n M-k select-pane -U
+bind -n M-l select-pane -R
+#+end_src
+
+The =-n= flag means "bind without prefix". So =Alt+h/j/k/l= lets you switch panes instantly without hitting prefix first.
+
+** Splits
+
+#+begin_src conf
+unbind %
+bind | split-window -h -c "#{pane_current_path}"
+
+unbind '"'
+bind - split-window -v -c "#{pane_current_path}"
+#+end_src
+
+Split windows with =prefix + |= for vertical and =prefix + -= for horizontal. The =-c "#{pane_current_path}"= part makes new panes open in the same directory as your current pane.
+
+** Config Reload
+
+#+begin_src conf
+unbind r
+bind r source-file $HOME/.config/tmux/tmux.conf
+#+end_src
+
+Reload your config with =prefix + r= without having to restart tmux.
+
+** Window Management
+
+#+begin_src conf
+set -g base-index 1
+set -g pane-base-index 1
+set-window-option -g pane-base-index 1
+set-option -g renumber-windows on
+#+end_src
+
+Start numbering windows and panes at 1 instead of 0. This is more ergonomic because window 1 is on the left of your keyboard. The =renumber-windows= option automatically renumbers windows when you close one, so you don't get gaps.
+
+#+begin_src conf
+bind -n M-1 select-window -t 1
+bind -n M-2 select-window -t 2
+# ... (continues through M-9)
+#+end_src
+
+Jump directly to windows with =Alt+1= through =Alt+9=, no prefix needed.
+
+** Copy Mode
+
+#+begin_src conf
+set-window-option -g mode-keys vi
+bind-key -T copy-mode-vi v send-keys -X begin-selection
+bind-key -T copy-mode-vi C-v send-keys -X rectangle-toggle
+bind-key -T copy-mode-vi y send-keys -X copy-selection-and-cancel
+unbind -T copy-mode-vi MouseDragEnd1Pane
+#+end_src
+
+Vim-style copy mode. Enter copy mode with =prefix + [=, navigate with =h/j/k/l=, press =v= to start selection, =y= to yank (copy). The =C-v= binding lets you do rectangle selection like in vim. The last line prevents mouse selection from exiting copy mode automatically.
+
+** Theme
+
+The rest of the config is the Tokyo Night Moon theme. The color variables are defined at the top:
+
+#+begin_src conf
+thm_bg="#222436"
+thm_fg="#c8d3f5"
+thm_cyan="#86e1fc"
+# ... etc
+#+end_src
+
+The status bar shows:
+- Current window with a checkmark and the last two parts of the current directory path
+- Other windows showing just their index and name
+- Right side shows window name, a visual indicator that changes color when prefix is pressed, and session name
+
+The status bar format strings look complex but they're just using tmux's format variables like =#I= (window index), =#W= (window name), =#S= (session name), and conditional formatting with =#{?client_prefix,...}=.
+
+* Keybindings Summary
+
+| Bind               | Action                      |
+|--------------------+-----------------------------|
+| =Ctrl-a=           | Prefix key                  |
+| =prefix + \vert=   | Split vertical              |
+| =prefix + -=       | Split horizontal            |
+| =prefix + h/j/k/l= | Navigate panes              |
+| =Alt + h/j/k/l=    | Navigate panes (no prefix)  |
+| =Alt + 1-9=        | Jump to window (no prefix)  |
+| =prefix + r=       | Reload config               |
+| =prefix + [=       | Enter copy mode             |
+| =v= (copy mode)    | Start selection             |
+| =y= (copy mode)    | Yank (copy) selection       |
+
+* Notes
+
+This config is heavily inspired by Henry Misc's zero-plugin approach. No TPM, no plugins, just native tmux features.
+
+If you want to change the theme colors, just swap out the =thm_*= variables at the top with your preferred color scheme.
